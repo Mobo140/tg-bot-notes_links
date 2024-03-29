@@ -11,9 +11,12 @@ import (
 	"github.com/Mobo140/projects/tg-bot-notes_links/pkg/telegram"
 	"github.com/boltdb/bolt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	godotenv.Load() //Чтение переменных окружения
+
 	cfg, err := config.Init()
 	if err != nil {
 		log.Fatal(err)
@@ -21,14 +24,15 @@ func main() {
 
 	log.Println(cfg)
 
-	bot, err := tgbotapi.NewBotAPI("6944652709:AAHeseGLmsD5CT4VX8tUSY_NOGcyUL4YNAU")
+	bot, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
 	if err != nil {
 		log.Panic(err)
 	}
 
 	bot.Debug = true
 
-	pocketClient, err := pocket.NewClient("110828-3e9363a2a0acd81d0b326db")
+	godotenv.Load()
+	pocketClient, err := pocket.NewClient(cfg.PocketConsumerKey)
 	if err != nil {
 		log.Fatal(err)
 	}

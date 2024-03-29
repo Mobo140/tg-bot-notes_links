@@ -1,92 +1,91 @@
 package config
 
-import (
-	"os"
-
-	"github.com/spf13/viper"
-)
-
-type Config struct {
-	TelegramToken     string
-	PocketConsumerKey string
-	AuthServerUrl     string
-	TelegramBotUrl    string `mapstructure:"bot_url"`
-	DBPath            string `mapstructure:"db_file"`
-
-	Messages Messages
-}
+import "github.com/spf13/viper"
 
 type Messages struct {
-	Errors
 	Responses
-}
-
-type Errors struct {
-	Default      string `mapstructure:"default"`
-	InvalidURL   string `mapstructure:"invalid_url"`
-	Unathorized  string `mapstructure:"unathorized"`
-	UnableToSave string `mapstructure:"unable_to_save"`
+	Errors
 }
 
 type Responses struct {
 	Start             string `mapstructure:"start"`
 	AlreadyAuthorized string `mapstructure:"already_authorized"`
-	SavedSuccessfully string `mapstructure:"saved_successfully"`
 	UnknownCommand    string `mapstructure:"unknown_command"`
+	LinkSaved         string `mapstructure:"link_saved"`
 }
 
-// Function for parsing config
-func Init() (*Config, error) {
-	viper.AddConfigPath("configs")
-	viper.SetConfigName("main")
+type Errors struct {
+	Default      string `mapstructure:"default"`
+	InvalidURL   string `mapstructure:"invalid_url"`
+	UnableToSave string `mapstructure:"unable_to_save"`
+}
 
-	if err := viper.ReadInConfig(); err != nil {
+type Config struct {
+	TelegramToken     string
+	PocketConsumerKey string
+	AuthServerURL     string
+
+	BotURL     string `mapstructure:"bot_url"`
+	BoltDBFile string `mapstructure:"db_file"`
+
+	Messages Messages
+}
+
+func Init() (*Config, error) {
+	if err := setUpViper(); err != nil {
 		return nil, err
 	}
 
 	var cfg Config
-	if err := viper.Unmarshal(&cfg); err != nil {
+	if err := unmarshal(&cfg); err != nil {
 		return nil, err
 	}
 
-	if err := viper.UnmarshalKey("messages.responses", &cfg.Messages.Responses); err != nil {
-		return nil, err
-	}
-
-	if err := viper.UnmarshalKey("messages.errors", &cfg.Messages.Errors); err != nil {
-		return nil, err
-	}
-
-	if err := parseEnv(&cfg); err != nil {
+	if err := fromEnv(&cfg); err != nil {
 		return nil, err
 	}
 
 	return &cfg, nil
 }
 
-// Function for parsing environment variables
-func parseEnv(cfg *Config) error {
+func unmarshal(cfg *Config) error {
+	if err := viper.Unmarshal(&cfg); err != nil {
+		return err
+	}
 
-	os.Setenv("TOKEN", "6944652709:AAHeseGLmsD5CT4VX8tUSY_NOGcyUL4YNAU")
-	os.Setenv("CONSUMER_KEY", "110828-3e9363a2a0acd81d0b326db")
-	os.Setenv("AUTH_SERVER_URL", "http://localhost/")
+	if err := viper.UnmarshalKey("messages.response", &cfg.Messages.Responses); err != nil {
+		return err
+	}
 
-	//метод для парсинга из переменных окружения по данному имени переменные
+	if err := viper.UnmarshalKey("messages.error", &cfg.Messages.Errors); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func fromEnv(cfg *Config) error {
 	if err := viper.BindEnv("token"); err != nil {
 		return err
 	}
+	cfg.TelegramToken = viper.GetString("token")
 
 	if err := viper.BindEnv("consumer_key"); err != nil {
 		return err
 	}
+	cfg.PocketConsumerKey = viper.GetString("consumer_key")
 
 	if err := viper.BindEnv("auth_server_url"); err != nil {
 		return err
 	}
-
-	cfg.TelegramToken = viper.GetString("token")
-	cfg.TelegramToken = viper.GetString("consumer_key")
-	cfg.TelegramToken = viper.GetString("auth_server_url")
+	cfg.AuthServerURL = viper.GetString("auth_server_url")
 
 	return nil
+}
+
+func setUpViper() error {
+	viper.AddConfigPath("configs")
+	viper.SetConfigName("main")
+
+	return viper.ReadInConfig()
 }
